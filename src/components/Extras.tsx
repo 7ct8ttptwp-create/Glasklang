@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Track } from '../lib/api';
 import { useExtras } from '../lib/extras';
+import { useFx } from '../lib/fx';
 import { useStore } from '../lib/store';
 import { formatDuration } from '../lib/util';
 import { Icon } from './Icon';
@@ -40,6 +41,7 @@ export function ExtrasRunner() {
 
   useEffect(() => {
     void load();
+    void useFx.getState().load();
   }, [load]);
 
   // soft glow from the cover color
@@ -419,8 +421,19 @@ export function ExtrasSettings() {
   const exportBackup = useExtras((s) => s.exportBackup);
   const importBackup = useExtras((s) => s.importBackup);
   const setHelp = useExtras((s) => s.setHelp);
+  const fx = useFx();
   return (
     <>
+      <label className="switch-row">
+        <span>
+          Crossfade
+          <small>{fx.crossfade === 0 ? 'Off - songs hop with almost no gap' : `Songs overlap for ${fx.crossfade} seconds`}</small>
+        </span>
+        <input type="range" min={0} max={12} step={1} value={fx.crossfade} onChange={(e) => fx.set({ crossfade: Number(e.target.value) })} />
+      </label>
+      <Toggle label="Visualizer" hint="Moving bars on the Now playing page" checked={fx.visualizer} onChange={(b) => fx.set({ visualizer: b })} />
+      <Toggle label="Breathing cover" hint="The big cover pulses gently with the bass" checked={fx.breathe} onChange={(b) => fx.set({ breathe: b })} />
+      <Toggle label="Lyrics" hint="Shows synced lyrics from a .lrc file with the same name as the song" checked={fx.lyrics} onChange={(b) => fx.set({ lyrics: b })} />
       <Toggle label="Cover glow" hint="The window softly glows in the color of the current cover" checked={glow} onChange={setGlow} />
       <Toggle label="Time-of-day accent" hint="Cool in the morning, warm in the evening, violet at night" checked={timeTheme} onChange={setTimeTheme} />
       <div className="row">
