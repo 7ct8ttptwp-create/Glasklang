@@ -52,7 +52,7 @@ export function PlayerBar({ compact }: { compact: boolean }) {
 
   return (
     <footer className={`playerbar glass${compact ? ' compact' : ''}`}>
-      <div className="now">
+      <div className="now" style={{ cursor: compact ? undefined : 'pointer' }} title="Open full cover view" onClick={() => !compact && setView({ kind: 'now' })}>
         <Cover path={track?.path ?? null} size={compact ? 64 : 58} radius={14} />
         <div className="meta">
           <div className="t1" title={track?.title}>{track?.title ?? 'Nothing playing'}</div>
