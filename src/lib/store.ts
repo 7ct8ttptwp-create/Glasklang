@@ -17,7 +17,11 @@ export type View =
   | { kind: 'artist'; artist: string }
   | { kind: 'playlist'; id: number }
   | { kind: 'queue' }
-  | { kind: 'now' };
+  | { kind: 'now' }
+  | { kind: 'favorites' }
+  | { kind: 'recent' }
+  | { kind: 'top' }
+  | { kind: 'stats' };
 
 export interface Toast {
   id: number;
