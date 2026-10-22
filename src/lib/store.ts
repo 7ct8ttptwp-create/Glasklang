@@ -7,7 +7,7 @@ import { register, unregisterAll } from '@tauri-apps/plugin-global-shortcut';
 import { api, getJson, Playlist, ScanStats, setJson, Track } from './api';
 import { Engine } from './audio';
 import { DEFAULT_SETTINGS, mergeSettings, Settings, themeOf, ThemeData } from './settings';
-import { dominantColor, loadCover, shuffled } from './util';
+import { dominantColor, loadCover, setCustomCovers, shuffled } from './util';
 
 export type View =
   | { kind: 'songs' }
@@ -16,7 +16,8 @@ export type View =
   | { kind: 'album'; key: string }
   | { kind: 'artist'; artist: string }
   | { kind: 'playlist'; id: number }
-  | { kind: 'queue' };
+  | { kind: 'queue' }
+  | { kind: 'now' };
 
 export interface Toast {
   id: number;
@@ -44,6 +45,8 @@ interface State {
   position: number;
   duration: number;
   coverUrl: string | null;
+  coverVersion: number;
+  customCovers: Record<string, string>;
   tint: string | null;
   toasts: Toast[];
 
@@ -72,6 +75,7 @@ interface State {
   next: () => void;
   prev: () => void;
   seek: (s: number) => void;
+  setCustomCover: (tracks: Track[], src: string | null) => Promise<void>;
 
   updateSettings: (patch: Partial<Settings>) => void;
   applyTheme: (t: ThemeData) => void;
@@ -284,6 +288,8 @@ export const useStore = create<State>()((set, get) => {
     position: 0,
     duration: 0,
     coverUrl: null,
+    coverVersion: 0,
+    customCovers: {},
     tint: null,
     toasts: [],
 
@@ -294,6 +300,9 @@ export const useStore = create<State>()((set, get) => {
       initStarted = true;
       const settings = mergeSettings(await getJson<Partial<Settings>>('settings'));
       set({ settings });
+      const covers = (await getJson<Record<string, string>>('customCovers')) ?? {};
+      setCustomCovers(covers);
+      set({ customCovers: covers });
       wireEngine();
 
       await listen<number>('scan-progress', (e) => set({ scanCount: e.payload }));
@@ -344,6 +353,28 @@ export const useStore = create<State>()((set, get) => {
     },
 
     setView: (view) => set({ view }),
+
+    // Pick your own cover for some tracks (one song or a whole album). It is copied into the
+    // app data folder and remembered; src = null goes back to the cover inside the file.
+    setCustomCover: async (tracks, src) => {
+      try {
+        const next = { ...get().customCovers };
+        if (src) {
+          const stored = await api.importBackground(src);
+          for (const t of tracks) next[t.path] = stored;
+        } else {
+          for (const t of tracks) delete next[t.path];
+        }
+        setCustomCovers(next);
+        set({ customCovers: next, coverVersion: get().coverVersion + 1 });
+        await setJson('customCovers', next);
+        const cur = currentTrack();
+        if (cur && tracks.some((t) => t.id === cur.id)) showTrack(cur);
+        get().toast(src ? 'Cover saved' : 'Cover reset');
+      } catch (e) {
+        get().toast(`Could not set cover: ${String(e)}`, 'error');
+      }
+    },
     setSearch: (search) => set({ search }),
     setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
     setDragging: (dragging) => set({ dragging }),
