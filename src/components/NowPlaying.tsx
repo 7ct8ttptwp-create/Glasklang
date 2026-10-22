@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useStore } from '../lib/store';
 import { formatTime, hasCustomCover } from '../lib/util';
+import { SleepButton } from './Extras';
+import { HeartButton } from './Heart';
 import { Icon } from './Icon';
 import { RangeGlass } from './PlayerBar';
 
@@ -103,6 +105,8 @@ export function NowPlaying() {
         </div>
 
         <div className="np-cover-tools">
+          <HeartButton path={track?.path} size={18} />
+          <SleepButton />
           <button className="btn small" disabled={!track} onClick={() => void choose()}>
             <Icon name="upload" size={15} /> Set own cover
           </button>
