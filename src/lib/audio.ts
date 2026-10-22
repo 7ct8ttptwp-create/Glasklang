@@ -7,14 +7,23 @@
 // Note: this is "near-gapless". Browsers do not trim encoder padding from MP3s, so a very short
 // (tens of ms) silence can remain on albums that were mixed to flow seamlessly.
 //
-// Extension point: add an AnalyserNode between `master` and `ctx.destination` for a visualizer.
+// An AnalyserNode sits between `master` and the speakers (visualizer / breathing cover).
+// Crossfade: every slot has its own gain so two tracks can overlap for a few seconds.
 
 import { fileUrl, Track } from './api';
 
 export const EQ_FREQS = [60, 230, 910, 3600, 14000];
 export const EQ_LABELS = ['60 Hz', '230 Hz', '910 Hz', '3.6 kHz', '14 kHz'];
 
+let activeEngine: Engine | null = null;
+let crossfadeSeconds = 0;
+export const getEngine = (): Engine | null => activeEngine;
+export const setCrossfadeSeconds = (s: number): void => {
+  crossfadeSeconds = Math.max(0, Math.min(12, s));
+};
+
 interface Slot {
+  gain: GainNode;
   el: HTMLAudioElement;
   trackId: number | null;
   ready: boolean;
@@ -45,10 +54,19 @@ export class Engine {
   private eqEnabled = true;
   private eqGains = [0, 0, 0, 0, 0];
   private speed = 1;
+  private analyser: AnalyserNode;
+  private loopA: number | null = null;
+  private loopB: number | null = null;
+  private fadeSlot: Slot | null = null;
+  private deferredNext: { track: Track | null } | null = null;
 
   constructor(private ev: EngineEvents) {
+    activeEngine = this;
     this.ctx = new AudioContext({ latencyHint: 'playback' });
     this.master = this.ctx.createGain();
+    this.analyser = this.ctx.createAnalyser();
+    this.analyser.fftSize = 256;
+    this.analyser.smoothingTimeConstant = 0.78;
 
     const types: BiquadFilterType[] = ['lowshelf', 'peaking', 'peaking', 'peaking', 'highshelf'];
     this.filters = EQ_FREQS.map((f, i) => {
@@ -62,7 +80,8 @@ export class Engine {
     // chain: filters[0] -> ... -> filters[4] -> master -> destination
     for (let i = 0; i < this.filters.length - 1; i++) this.filters[i].connect(this.filters[i + 1]);
     this.filters[this.filters.length - 1].connect(this.master);
-    this.master.connect(this.ctx.destination);
+    this.master.connect(this.analyser);
+    this.analyser.connect(this.ctx.destination);
 
     this.slots = [this.makeSlot(), this.makeSlot()];
   }
@@ -71,9 +90,11 @@ export class Engine {
     const el = new Audio();
     el.preload = 'auto';
     el.crossOrigin = 'anonymous';
-    const slot: Slot = { el, trackId: null, ready: false };
+    const gain = this.ctx.createGain();
+    const slot: Slot = { gain, el, trackId: null, ready: false };
     const src = this.ctx.createMediaElementSource(el);
-    src.connect(this.filters[0]);
+    src.connect(gain);
+    gain.connect(this.filters[0]);
 
     el.addEventListener('canplaythrough', () => (slot.ready = true));
     el.addEventListener('loadedmetadata', () => {
@@ -123,6 +144,11 @@ export class Engine {
 
   /** Load a track in the current slot. Optionally start playing and/or jump to a position. */
   async load(track: Track, opts: { autoplay: boolean; startAt?: number }): Promise<void> {
+    this.clearLoop();
+    for (const sl of this.slots) {
+      sl.gain.gain.cancelScheduledValues(0);
+      sl.gain.gain.value = 1;
+    }
     // Instant switch if the track was already preloaded in the other slot.
     if (this.other.trackId === track.id && this.other.el.src) {
       this.current.el.pause();
@@ -150,6 +176,11 @@ export class Engine {
   /** Preload the track that should play after the current one (or clear it with null). */
   setNext(track: Track | null) {
     const o = this.other;
+    if (this.fadeSlot === o) {
+      // the other slot is still fading out - apply this when it is free
+      this.deferredNext = { track };
+      return;
+    }
     if (!track) {
       if (o.trackId !== null) {
         o.el.removeAttribute('src');
@@ -199,6 +230,25 @@ export class Engine {
     return this.current.el.currentTime || 0;
   }
 
+  /** Frequency data (0..255) for the visualizer. */
+  readFrequencies(out: Uint8Array): void {
+    this.analyser.getByteFrequencyData(out as never);
+  }
+
+  get binCount(): number {
+    return this.analyser.frequencyBinCount;
+  }
+
+  setLoop(a: number | null, b: number | null) {
+    this.loopA = a;
+    this.loopB = b;
+  }
+
+  clearLoop() {
+    this.loopA = null;
+    this.loopB = null;
+  }
+
   setVolume(v: number) {
     // perceptual curve: slider 0..1 -> gain 0..1
     this.master.gain.value = Math.pow(Math.min(1, Math.max(0, v)), 2);
@@ -233,25 +283,51 @@ export class Engine {
     const el = this.current.el;
     const d = el.duration;
     if (!Number.isFinite(d) || d <= 0) return;
+    if (this.loopA !== null && this.loopB !== null && el.currentTime >= this.loopB) {
+      el.currentTime = this.loopA;
+      return;
+    }
     const remaining = (d - el.currentTime) / this.speed;
-    if (remaining <= HOP_LEAD_SECONDS) this.hopIfPossible();
+    const xf = crossfadeSeconds > 0 && d > crossfadeSeconds * 3 ? crossfadeSeconds : 0;
+    if (remaining <= (xf > 0 ? xf : HOP_LEAD_SECONDS)) this.hopIfPossible(xf);
   }
 
   /** Switch to the preloaded slot if it is ready. Returns true on success. */
-  private hopIfPossible(): boolean {
+  private hopIfPossible(fade = 0): boolean {
     const next = this.other;
     if (next.trackId === null || !next.el.src || next.el.readyState < 3) return false;
     const old = this.current;
     this.cur = 1 - this.cur;
+    this.clearLoop();
+    const t = this.ctx.currentTime;
+    next.gain.gain.cancelScheduledValues(t);
+    old.gain.gain.cancelScheduledValues(t);
+    if (fade > 0) {
+      next.gain.gain.setValueAtTime(0, t);
+      next.gain.gain.linearRampToValueAtTime(1, t + fade);
+      old.gain.gain.setValueAtTime(1, t);
+      old.gain.gain.linearRampToValueAtTime(0, t + fade);
+    } else {
+      next.gain.gain.setValueAtTime(1, t);
+    }
+    this.fadeSlot = old;
     this.applySpeed(next.el);
     next.el.currentTime = 0;
     void next.el.play().catch(() => undefined);
     old.trackId = null;
     window.setTimeout(() => {
-      old.el.pause();
-      old.el.removeAttribute('src');
-      old.el.load();
-    }, 400);
+      if (old.trackId === null) {
+        old.el.pause();
+        old.el.removeAttribute('src');
+        old.el.load();
+      }
+      if (this.fadeSlot === old) this.fadeSlot = null;
+      const d = this.deferredNext;
+      if (d) {
+        this.deferredNext = null;
+        this.setNext(d.track);
+      }
+    }, fade * 1000 + 400);
     this.ev.onAdvanced();
     return true;
   }
