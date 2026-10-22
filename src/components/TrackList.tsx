@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Track } from '../lib/api';
 import { useStore } from '../lib/store';
 import { formatDuration } from '../lib/util';
+import { HeartButton } from './Heart';
 import { Icon } from './Icon';
 
 interface Props {
@@ -59,6 +60,7 @@ export function TrackList({ tracks, mode = 'library', onPlay, onMove, onRemove, 
               <div className="tactions">
                 {mode === 'library' && (
                   <>
+                    <HeartButton path={t.path} size={16} />
                     <button className="icon-btn" title="Play next" onClick={() => enqueueNext(t)}>
                       <Icon name="plus" size={16} />
                     </button>
