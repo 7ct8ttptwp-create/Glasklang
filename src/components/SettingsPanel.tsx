@@ -5,6 +5,7 @@ import { EQ_LABELS } from '../lib/audio';
 import { BgKind, DEFAULT_THEME, GRADIENT_PRESETS, Preset, themeOf, ThemeData } from '../lib/settings';
 import { useStore } from '../lib/store';
 import { basename } from '../lib/util';
+import { ExtrasSettings } from './Extras';
 import { Icon } from './Icon';
 import { RangeGlass } from './PlayerBar';
 
@@ -168,6 +169,7 @@ export function SettingsPanel() {
                 <Icon name="refresh" size={15} /> Reset look to default
               </button>
             </div>
+            <ExtrasSettings />
             <Field label="Theme">
               <div className="seg">
                 {(['auto', 'light', 'dark'] as const).map((m) => (
