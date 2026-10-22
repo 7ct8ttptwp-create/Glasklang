@@ -1,0 +1,50 @@
+name: Release (build Glasklang.exe)
+
+# Builds the portable Windows .exe and attaches it to a GitHub Release.
+# Trigger: push a tag like v0.1.0   (git tag v0.1.0 && git push origin v0.1.0)
+# or start it by hand from the "Actions" tab.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      - name: Install JavaScript dependencies
+        run: npm install
+
+      - name: Run Rust unit tests
+        run: cargo test -p glasklang-core
+
+      - name: Build portable .exe (no installer)
+        run: npm run tauri -- build --no-bundle
+
+      - name: Collect files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-release | Out-Null
+          Copy-Item target/release/glasklang.exe dist-release/Glasklang.exe
+
+      - name: Keep the exe as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Glasklang-windows
+          path: dist-release/Glasklang.exe
