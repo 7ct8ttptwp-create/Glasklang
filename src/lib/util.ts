@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, fileUrl } from './api';
 
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -45,8 +45,19 @@ const coverCache = new Map<string, string | null>();
 const coverInflight = new Map<string, Promise<string | null>>();
 const COVER_CACHE_MAX = 400;
 
+// Covers the user picked themselves: track path -> image file inside the app data folder.
+let customCovers: Record<string, string> = {};
+export function setCustomCovers(map: Record<string, string>): void {
+  customCovers = map;
+}
+export function hasCustomCover(path: string): boolean {
+  return !!customCovers[path];
+}
+
 /** Blob URL for the cover of a track file, or null. Cached; the oldest entries are released. */
 export function loadCover(path: string): Promise<string | null> {
+  const mine = customCovers[path];
+  if (mine) return Promise.resolve(fileUrl(mine));
   if (coverCache.has(path)) return Promise.resolve(coverCache.get(path) ?? null);
   const pending = coverInflight.get(path);
   if (pending) return pending;
