@@ -431,3 +431,11 @@ kbd { justify-self: start; padding: 3px 9px; border-radius: 8px; border: 1px sol
 .help-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; }
 kbd { justify-self: start; padding: 3px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); font: inherit; font-size: 12.5px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Batch 2: visualizer, breathing cover, lyrics, loop */
+.np-art { transform: scale(calc(1 + var(--bass, 0) * 0.035)); transform-origin: 50% 35%; will-change: transform; }
+.np-vis { width: 100%; height: 56px; opacity: 0.9; pointer-events: none; }
+.np-lyrics { text-align: center; display: flex; flex-direction: column; gap: 4px; min-height: 84px; justify-content: center; }
+.np-lyrics .l { font-size: 15px; opacity: 0.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-lyrics .l.cur { font-size: 21px; font-weight: 650; opacity: 1; animation: riseIn 0.35s var(--ease-out) both; }
+.btn.small.on { background: color-mix(in srgb, var(--accent) 35%, transparent); }
