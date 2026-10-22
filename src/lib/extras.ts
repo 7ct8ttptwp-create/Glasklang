@@ -36,7 +36,7 @@ interface Extras extends Saved {
   importBackup: () => Promise<void>;
 }
 
-const BACKUP_KEYS = ['settings', 'queue', 'pos', 'customCovers', 'extras'];
+const BACKUP_KEYS = ['settings', 'queue', 'pos', 'customCovers', 'extras', 'fx'];
 let saveTimer: number | null = null;
 
 export const useExtras = create<Extras>()((set, get) => {
