@@ -7,6 +7,7 @@ import { Background } from './components/Background';
 import { GlassFilters } from './components/GlassFilters';
 import { PlayerBar } from './components/PlayerBar';
 import { SettingsPanel } from './components/SettingsPanel';
+import { ExtrasRunner, ShortcutsOverlay, SmartView, StatsView } from './components/Extras';
 import { NowPlaying } from './components/NowPlaying';
 import { Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
@@ -141,6 +142,14 @@ export default function App() {
     case 'now':
       body = <NowPlaying />;
       break;
+    case 'favorites':
+    case 'recent':
+    case 'top':
+      body = <SmartView kind={view.kind} />;
+      break;
+    case 'stats':
+      body = <StatsView />;
+      break;
     default:
       body = <SongsView />;
   }
@@ -149,6 +158,9 @@ export default function App() {
     <div className={`app${compact ? ' compact' : ''}`} data-theme={theme} data-quality={settings.glass.quality} style={style}>
       <GlassFilters />
       <Background bg={bg} scrim={scrim} />
+      <div className="glow" />
+      <ExtrasRunner />
+      <ShortcutsOverlay />
       <TitleBar compact={compact} />
       {!compact && (
         <div className="main">
