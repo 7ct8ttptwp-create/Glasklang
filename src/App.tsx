@@ -7,6 +7,7 @@ import { Background } from './components/Background';
 import { GlassFilters } from './components/GlassFilters';
 import { PlayerBar } from './components/PlayerBar';
 import { SettingsPanel } from './components/SettingsPanel';
+import { NowPlaying } from './components/NowPlaying';
 import { Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
 import { AlbumDetail, AlbumsView, ArtistDetail, ArtistsView, PlaylistView, QueueView, SongsView } from './components/Views';
@@ -136,6 +137,9 @@ export default function App() {
       break;
     case 'queue':
       body = <QueueView />;
+      break;
+    case 'now':
+      body = <NowPlaying />;
       break;
     default:
       body = <SongsView />;
