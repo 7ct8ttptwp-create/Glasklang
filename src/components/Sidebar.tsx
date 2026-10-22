@@ -33,6 +33,7 @@ export function Sidebar() {
   return (
     <nav className="sidebar glass">
       <div className="nav-group">
+        {item({ kind: 'now' }, 'play', 'Now playing')}
         {item({ kind: 'songs' }, 'music', 'Songs', trackCount)}
         {item({ kind: 'albums' }, 'disc', 'Albums')}
         {item({ kind: 'artists' }, 'user', 'Artists')}
