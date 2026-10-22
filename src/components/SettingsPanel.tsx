@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { api, fileUrl } from '../lib/api';
 import { EQ_LABELS } from '../lib/audio';
-import { BgKind, GRADIENT_PRESETS, Preset, themeOf, ThemeData } from '../lib/settings';
+import { BgKind, DEFAULT_THEME, GRADIENT_PRESETS, Preset, themeOf, ThemeData } from '../lib/settings';
 import { useStore } from '../lib/store';
 import { basename } from '../lib/util';
 import { Icon } from './Icon';
@@ -156,6 +156,18 @@ export function SettingsPanel() {
       <div className="settings-body">
         {tab === 'look' && (
           <>
+            <div className="row">
+              <button
+                className="btn small"
+                title="Puts theme, accent, glass and background back to how they were at the start. Saved themes and audio settings are kept."
+                onClick={() => {
+                  applyTheme({ ...DEFAULT_THEME, glass: { ...DEFAULT_THEME.glass }, bg: { ...DEFAULT_THEME.bg } });
+                  toast('Look reset to default');
+                }}
+              >
+                <Icon name="refresh" size={15} /> Reset look to default
+              </button>
+            </div>
             <Field label="Theme">
               <div className="seg">
                 {(['auto', 'light', 'dark'] as const).map((m) => (
