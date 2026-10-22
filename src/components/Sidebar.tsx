@@ -38,6 +38,10 @@ export function Sidebar() {
         {item({ kind: 'albums' }, 'disc', 'Albums')}
         {item({ kind: 'artists' }, 'user', 'Artists')}
         {item({ kind: 'queue' }, 'queue', 'Queue', queueCount)}
+        {item({ kind: 'favorites' }, 'heart', 'Favorites')}
+        {item({ kind: 'recent' }, 'clock', 'Recently played')}
+        {item({ kind: 'top' }, 'chart', 'Most played')}
+        {item({ kind: 'stats' }, 'disc', 'Stats')}
       </div>
 
       <div className="nav-heading">
