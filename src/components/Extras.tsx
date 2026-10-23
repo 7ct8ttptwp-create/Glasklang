@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Track } from '../lib/api';
 import { useExtras } from '../lib/extras';
 import { useFx } from '../lib/fx';
+import { useYt } from '../lib/yt';
 import { useStore } from '../lib/store';
 import { formatDuration } from '../lib/util';
 import { Icon } from './Icon';
+import { YtSettings } from './YouTube';
 import { TrackList } from './TrackList';
 
 // ---------------------------------------------------------------------------
@@ -42,6 +44,7 @@ export function ExtrasRunner() {
   useEffect(() => {
     void load();
     void useFx.getState().load();
+    void useYt.getState().load();
   }, [load]);
 
   // soft glow from the cover color
@@ -441,6 +444,7 @@ export function ExtrasSettings() {
         <button className="btn small" onClick={() => void importBackup()}><Icon name="download" size={15} /> Restore backup</button>
         <button className="btn small" onClick={() => setHelp(true)}><Icon name="keyboard" size={15} /> Shortcuts</button>
       </div>
+      <YtSettings />
     </>
   );
 }
