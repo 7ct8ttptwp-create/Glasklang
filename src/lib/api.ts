@@ -55,6 +55,8 @@ export const api = {
   rescan: () => invoke<ScanStats>('rescan'),
   listFolders: () => invoke<string[]>('list_folders'),
   removeFolder: (path: string) => invoke<void>('remove_folder', { path }),
+  removeTracks: (paths: string[], deleteFiles: boolean) => invoke<number>('remove_tracks', { paths, deleteFiles }),
+  restoreRemoved: () => invoke<number>('restore_removed'),
   getCover: (path: string) => invoke<ArrayBuffer>('get_cover', { path }),
 
   listPlaylists: () => invoke<Playlist[]>('list_playlists'),
