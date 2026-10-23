@@ -8,6 +8,7 @@ import { GlassFilters } from './components/GlassFilters';
 import { PlayerBar } from './components/PlayerBar';
 import { SettingsPanel } from './components/SettingsPanel';
 import { BrowseView } from './components/Browse';
+import { YouTubeView } from './components/YouTube';
 import { ExtrasRunner, ShortcutsOverlay, SmartView, StatsView } from './components/Extras';
 import { NowPlaying } from './components/NowPlaying';
 import { Sidebar } from './components/Sidebar';
@@ -153,6 +154,9 @@ export default function App() {
       break;
     case 'browse':
       body = <BrowseView />;
+      break;
+    case 'youtube':
+      body = <YouTubeView />;
       break;
     default:
       body = <SongsView />;
