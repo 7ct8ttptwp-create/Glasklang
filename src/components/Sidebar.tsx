@@ -41,6 +41,7 @@ export function Sidebar() {
         {item({ kind: 'favorites' }, 'heart', 'Favorites')}
         {item({ kind: 'recent' }, 'clock', 'Recently played')}
         {item({ kind: 'top' }, 'chart', 'Most played')}
+        {item({ kind: 'browse' }, 'list', 'Browse')}
         {item({ kind: 'stats' }, 'disc', 'Stats')}
       </div>
 
