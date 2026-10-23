@@ -5,6 +5,7 @@ import { useStore } from '../lib/store';
 import { formatDuration } from '../lib/util';
 import { HeartButton } from './Heart';
 import { Icon } from './Icon';
+import { RemoveDialog } from './RemoveDialog';
 
 interface Props {
   tracks: Track[];
@@ -24,6 +25,7 @@ export function TrackList({ tracks, mode = 'library', onPlay, onMove, onRemove, 
   const playing = useStore((s) => s.playing);
   const enqueueNext = useStore((s) => s.enqueueNext);
   const [menu, setMenu] = useState<{ x: number; y: number; track: Track } | null>(null);
+  const [removing, setRemoving] = useState<Track | null>(null);
 
   const virt = useVirtualizer({
     count: tracks.length,
@@ -74,6 +76,9 @@ export function TrackList({ tracks, mode = 'library', onPlay, onMove, onRemove, 
                     >
                       <Icon name="listPlus" size={16} />
                     </button>
+                    <button className="icon-btn" title="Remove song" onClick={() => setRemoving(t)}>
+                      <Icon name="trash" size={16} />
+                    </button>
                   </>
                 )}
                 {mode !== 'library' && (
@@ -94,6 +99,7 @@ export function TrackList({ tracks, mode = 'library', onPlay, onMove, onRemove, 
           );
         })}
       </div>
+      {removing && <RemoveDialog track={removing} onClose={() => setRemoving(null)} />}
       {menu && <PlaylistMenu x={menu.x} y={menu.y} track={menu.track} onClose={() => setMenu(null)} />}
     </div>
   );
