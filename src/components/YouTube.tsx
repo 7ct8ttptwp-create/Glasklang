@@ -21,6 +21,7 @@ export function YouTubeView() {
   const toast = useStore((s) => s.toast);
   const playList = useStore((s) => s.playList);
   const reloadTracks = useStore((s) => s.reloadTracks);
+  const setCustomCover = useStore((s) => s.setCustomCover);
   const [status, setStatus] = useState<YtStatus | null>(null);
   const [installing, setInstalling] = useState(false);
   const [query, setQuery] = useState('');
@@ -95,10 +96,10 @@ export function YouTubeView() {
     setBusy(`s${it.id}`);
     api
       .ytFetch(it.id, false, null)
-      .then((path) => {
+      .then(async (f) => {
         const t: Track = {
           id: fakeId(it.id),
-          path,
+          path: f.path,
           title: it.title,
           artist: it.channel || 'YouTube',
           album: 'YouTube',
@@ -108,6 +109,7 @@ export function YouTubeView() {
           year: null,
           duration_ms: Math.round(it.duration * 1000),
         };
+        if (f.cover) await setCustomCover([t], f.cover, true);
         playList([t], 0);
       })
       .catch((err) => toast(errText(err), 'error'))
@@ -118,8 +120,10 @@ export function YouTubeView() {
     setBusy(`d${it.id}`);
     api
       .ytFetch(it.id, true, saveDir || null)
-      .then(async () => {
+      .then(async (f) => {
         await reloadTracks();
+        const saved = useStore.getState().tracks.find((t) => t.path === f.path);
+        if (saved && f.cover) await setCustomCover([saved], f.cover, true);
         toast(`Saved "${it.title}" to your library`);
       })
       .catch((err) => toast(errText(err), 'error'))
