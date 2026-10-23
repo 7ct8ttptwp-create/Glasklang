@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useYt } from '../lib/yt';
 import { useStore, View } from '../lib/store';
 import { Icon } from './Icon';
 
@@ -11,6 +12,7 @@ export function Sidebar() {
   const createPlaylist = useStore((s) => s.createPlaylist);
   const addFolderDialog = useStore((s) => s.addFolderDialog);
   const importM3uDialog = useStore((s) => s.importM3uDialog);
+  const ytOn = useYt((s) => s.enabled);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
 
@@ -42,6 +44,7 @@ export function Sidebar() {
         {item({ kind: 'recent' }, 'clock', 'Recently played')}
         {item({ kind: 'top' }, 'chart', 'Most played')}
         {item({ kind: 'browse' }, 'list', 'Browse')}
+        {ytOn && item({ kind: 'youtube' }, 'download', 'YouTube')}
         {item({ kind: 'stats' }, 'disc', 'Stats')}
       </div>
 
