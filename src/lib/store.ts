@@ -22,7 +22,8 @@ export type View =
   | { kind: 'recent' }
   | { kind: 'top' }
   | { kind: 'stats' }
-  | { kind: 'browse' };
+  | { kind: 'browse' }
+  | { kind: 'youtube' };
 
 export interface Toast {
   id: number;
