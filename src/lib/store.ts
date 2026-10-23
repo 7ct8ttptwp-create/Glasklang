@@ -81,7 +81,7 @@ interface State {
   next: () => void;
   prev: () => void;
   seek: (s: number) => void;
-  setCustomCover: (tracks: Track[], src: string | null) => Promise<void>;
+  setCustomCover: (tracks: Track[], src: string | null, quiet?: boolean) => Promise<void>;
 
   updateSettings: (patch: Partial<Settings>) => void;
   applyTheme: (t: ThemeData) => void;
@@ -362,7 +362,7 @@ export const useStore = create<State>()((set, get) => {
 
     // Pick your own cover for some tracks (one song or a whole album). It is copied into the
     // app data folder and remembered; src = null goes back to the cover inside the file.
-    setCustomCover: async (tracks, src) => {
+    setCustomCover: async (tracks, src, quiet) => {
       try {
         const next = { ...get().customCovers };
         if (src) {
@@ -376,7 +376,7 @@ export const useStore = create<State>()((set, get) => {
         await setJson('customCovers', next);
         const cur = currentTrack();
         if (cur && tracks.some((t) => t.id === cur.id)) showTrack(cur);
-        get().toast(src ? 'Cover saved' : 'Cover reset');
+        if (!quiet) get().toast(src ? 'Cover saved' : 'Cover reset');
       } catch (e) {
         get().toast(`Could not set cover: ${String(e)}`, 'error');
       }
