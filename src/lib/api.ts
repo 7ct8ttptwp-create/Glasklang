@@ -26,6 +26,11 @@ export interface YtStatus {
   version: string | null;
 }
 
+export interface YtFile {
+  path: string;
+  cover: string | null;
+}
+
 export interface YtItem {
   id: string;
   title: string;
@@ -82,7 +87,7 @@ export const api = {
   ytInstall: () => invoke<void>('yt_install'),
   ytUpdate: () => invoke<string>('yt_update'),
   ytSearch: (query: string) => invoke<YtItem[]>('yt_search', { query }),
-  ytFetch: (id: string, save: boolean, dest: string | null) => invoke<string>('yt_fetch', { id, save, dest }),
+  ytFetch: (id: string, save: boolean, dest: string | null) => invoke<YtFile>('yt_fetch', { id, save, dest }),
   ytClearCache: () => invoke<void>('yt_clear_cache'),
 };
 
