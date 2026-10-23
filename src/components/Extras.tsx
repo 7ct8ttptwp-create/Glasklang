@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../lib/api';
 import type { Track } from '../lib/api';
 import { useExtras } from '../lib/extras';
 import { useFx } from '../lib/fx';
@@ -424,6 +425,8 @@ export function ExtrasSettings() {
   const exportBackup = useExtras((s) => s.exportBackup);
   const importBackup = useExtras((s) => s.importBackup);
   const setHelp = useExtras((s) => s.setHelp);
+  const rescan = useStore((s) => s.rescan);
+  const toast = useStore((s) => s.toast);
   const fx = useFx();
   return (
     <>
@@ -443,6 +446,18 @@ export function ExtrasSettings() {
         <button className="btn small" onClick={() => void exportBackup()}><Icon name="upload" size={15} /> Back up settings</button>
         <button className="btn small" onClick={() => void importBackup()}><Icon name="download" size={15} /> Restore backup</button>
         <button className="btn small" onClick={() => setHelp(true)}><Icon name="keyboard" size={15} /> Shortcuts</button>
+        <button
+          className="btn small"
+          title="Bring back songs you removed from the library"
+          onClick={() => {
+            void api.restoreRemoved().then(async (n) => {
+              await rescan();
+              toast(n > 0 ? `Restored ${n} removed song${n === 1 ? '' : 's'}` : 'No removed songs to restore');
+            });
+          }}
+        >
+          <Icon name="refresh" size={15} /> Restore removed songs
+        </button>
       </div>
       <YtSettings />
     </>
