@@ -216,6 +216,8 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
             "--no-playlist".to_string(),
             "--no-warnings".to_string(),
             "--windows-filenames".to_string(),
+            "--encoding".to_string(),
+            "utf-8".to_string(),
             "-q".to_string(),
             "--no-simulate".to_string(),
             "--print".to_string(),
@@ -231,11 +233,29 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
             return Err(format!("Download failed: {}", tail(&out.stderr)));
         }
         let stdout = String::from_utf8_lossy(&out.stdout);
-        let line = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).last().unwrap_or("").to_string();
-        if line.is_empty() || !Path::new(&line).is_file() {
-            return Err("yt-dlp finished but no file was created.".to_string());
+        let printed = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).last().unwrap_or("").to_string();
+        if !printed.is_empty() && Path::new(&printed).is_file() {
+            return Ok(printed);
         }
-        Ok(line)
+        // the printed path can be garbled by the console code page: find the file by its video id instead
+        let tag = format!("[{id}]");
+        let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
+        if let Ok(rd) = std::fs::read_dir(&dir_for_job) {
+            for e in rd.flatten() {
+                let name = e.file_name().to_string_lossy().to_string();
+                if !name.contains(&tag) || name.ends_with(".part") || name.ends_with(".ytdl") {
+                    continue;
+                }
+                let m = e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH);
+                if best.as_ref().map_or(true, |(t, _)| m > *t) {
+                    best = Some((m, e.path()));
+                }
+            }
+        }
+        match best {
+            Some((_, p)) => Ok(p.to_string_lossy().to_string()),
+            None => Err(format!("yt-dlp finished but no file was created. {}", tail(&out.stderr))),
+        }
     })
     .await
     .map_err(err)??;
