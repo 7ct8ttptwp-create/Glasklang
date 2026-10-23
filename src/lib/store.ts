@@ -21,7 +21,8 @@ export type View =
   | { kind: 'favorites' }
   | { kind: 'recent' }
   | { kind: 'top' }
-  | { kind: 'stats' };
+  | { kind: 'stats' }
+  | { kind: 'browse' };
 
 export interface Toast {
   id: number;
