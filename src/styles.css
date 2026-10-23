@@ -469,3 +469,16 @@ kbd { justify-self: start; padding: 3px 9px; border-radius: 8px; border: 1px sol
 .smart-form input:not([type='checkbox']) { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 10px; padding: 8px 10px; color: inherit; font: inherit; min-width: 0; }
 .sf-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
 .sf-row input { flex: 1; width: 0; }
+
+/* Batch 4: YouTube (optional) */
+.yt-install { margin: 20px clamp(16px, 3vw, 28px); padding: 20px; border-radius: 18px; max-width: 560px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.yt-install h2 { margin: 0; }
+.yt-install p { margin: 0; line-height: 1.5; }
+.yt-search { display: flex; gap: 8px; padding: 0 clamp(16px, 3vw, 28px) 12px; }
+.yt-search input { flex: 1; min-width: 0; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 10px 12px; color: inherit; font: inherit; }
+.yt-results { flex: 1; min-height: 0; overflow: auto; padding: 0 clamp(10px, 2vw, 20px) 16px; display: flex; flex-direction: column; gap: 4px; }
+.yt-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; }
+.yt-row:hover { background: rgba(255, 255, 255, 0.07); }
+.yt-meta { flex: 1; min-width: 0; }
+.yt-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.yt-sub { opacity: 0.6; font-size: 12px; }
