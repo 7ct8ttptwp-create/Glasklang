@@ -21,6 +21,18 @@ export interface Playlist {
   track_count: number;
 }
 
+export interface YtStatus {
+  installed: boolean;
+  version: string | null;
+}
+
+export interface YtItem {
+  id: string;
+  title: string;
+  channel: string;
+  duration: number;
+}
+
 export interface ScanStats {
   added: number;
   updated: number;
@@ -65,6 +77,13 @@ export const api = {
   dataDirPath: () => invoke<string>('data_dir_path'),
   openDataDir: () => invoke<void>('open_data_dir'),
   deleteAllData: () => invoke<void>('delete_all_data'),
+
+  ytStatus: () => invoke<YtStatus>('yt_status'),
+  ytInstall: () => invoke<void>('yt_install'),
+  ytUpdate: () => invoke<string>('yt_update'),
+  ytSearch: (query: string) => invoke<YtItem[]>('yt_search', { query }),
+  ytFetch: (id: string, save: boolean, dest: string | null) => invoke<string>('yt_fetch', { id, save, dest }),
+  ytClearCache: () => invoke<void>('yt_clear_cache'),
 };
 
 export async function getJson<T>(key: string): Promise<T | null> {
