@@ -7,8 +7,11 @@
 //! library, copy background files, draw the Windows window material and the tray icon.
 //! Playback itself happens in the web view (see `src/lib/audio.ts`).
 //!
-//! Privacy: this program never opens a network connection. There is no HTTP client in the
-//! dependency list, and the window's content-security-policy forbids outbound requests.
+//! Privacy: this program never opens a network connection by itself. There is no HTTP client in the
+//! dependency list, and the window's content-security-policy forbids outbound requests. The one
+//! exception is the optional YouTube feature (`yt.rs`), which is off until the user enables it.
+
+mod yt;
 
 use base64::Engine as _;
 use glasklang_core::db::{Db, Playlist, Track};
@@ -504,6 +507,12 @@ fn main() {
             data_dir_path,
             open_data_dir,
             delete_all_data,
+            yt::yt_status,
+            yt::yt_install,
+            yt::yt_update,
+            yt::yt_search,
+            yt::yt_fetch,
+            yt::yt_clear_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Glasklang");
