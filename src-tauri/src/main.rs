@@ -119,7 +119,12 @@ async fn run_scan(app: AppHandle, db_path: PathBuf, paths: Vec<PathBuf>) -> CmdR
         let mut progress = |n: usize| {
             let _ = app.emit("scan-progress", n);
         };
-        scanner::scan_paths(&db, &paths, &mut progress)
+        let stats = scanner::scan_paths(&db, &paths, &mut progress)?;
+        // songs the user removed from the library stay removed even if their folder is scanned again
+        for p in excluded_paths(&db) {
+            let _ = db.delete_track_path(&p);
+        }
+        Ok(stats)
     })
     .await
     .map_err(err)?
@@ -134,6 +139,78 @@ async fn list_folders(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
 #[tauri::command]
 async fn remove_folder(state: State<'_, AppState>, path: String) -> CmdResult<()> {
     with_db(&state, |db| db.remove_folder(&path))
+}
+
+const EXCLUDED_KEY: &str = "excluded";
+
+/// Paths the user removed from the library (kept so a rescan does not bring them back).
+fn excluded_paths(db: &Db) -> Vec<String> {
+    db.kv_get(EXCLUDED_KEY)
+        .ok()
+        .flatten()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// Move a file to the Windows Recycle Bin (the path travels in an environment variable, never in the script).
+fn recycle(path: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let script = "Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($env:GLK_PATH,'OnlyErrorDialogs','SendToRecycleBin')";
+        let out = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .env("GLK_PATH", path)
+            .creation_flags(0x0800_0000)
+            .output()
+            .map_err(err)?;
+        if out.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        fs::remove_file(path).map_err(err)
+    }
+}
+
+/// Remove songs from the library. With `delete_files` the files also go to the Recycle Bin.
+#[tauri::command]
+async fn remove_tracks(state: State<'_, AppState>, paths: Vec<String>, delete_files: bool) -> CmdResult<usize> {
+    let mut done = 0usize;
+    let mut first_err: Option<String> = None;
+    let mut excluded = with_db(&state, |db| Ok(excluded_paths(db)))?;
+    for p in &paths {
+        if delete_files && Path::new(p).exists() {
+            let owned = p.clone();
+            let res = tauri::async_runtime::spawn_blocking(move || recycle(&owned)).await.map_err(err)?;
+            if let Err(e) = res {
+                first_err.get_or_insert(e);
+                continue;
+            }
+        }
+        with_db(&state, |db| db.delete_track_path(p))?;
+        if !delete_files && !excluded.contains(p) {
+            excluded.push(p.clone());
+        }
+        done += 1;
+    }
+    let json = serde_json::to_string(&excluded).map_err(err)?;
+    with_db(&state, |db| db.kv_set(EXCLUDED_KEY, &json))?;
+    match first_err {
+        Some(e) if done == 0 => Err(format!("Could not move the file to the Recycle Bin: {e}")),
+        _ => Ok(done),
+    }
+}
+
+/// Forget which songs were removed; the next scan brings them back.
+#[tauri::command]
+async fn restore_removed(state: State<'_, AppState>) -> CmdResult<usize> {
+    let n = with_db(&state, |db| Ok(excluded_paths(db).len()))?;
+    with_db(&state, |db| db.kv_set(EXCLUDED_KEY, "[]"))?;
+    Ok(n)
 }
 
 /// Raw cover image bytes (empty if the track has no cover).
@@ -484,6 +561,8 @@ fn main() {
             rescan,
             list_folders,
             remove_folder,
+            remove_tracks,
+            restore_removed,
             get_cover,
             list_playlists,
             create_playlist,
