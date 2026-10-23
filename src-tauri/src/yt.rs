@@ -19,6 +19,12 @@ pub struct YtStatus {
 }
 
 #[derive(Serialize)]
+pub struct YtFile {
+    path: String,
+    cover: Option<String>,
+}
+
+#[derive(Serialize)]
 pub struct YtItem {
     id: String,
     title: String,
@@ -36,6 +42,24 @@ fn exe_path(state: &AppState) -> PathBuf {
 
 fn cache_dir(state: &AppState) -> PathBuf {
     state.data_dir.join("yt-cache")
+}
+
+fn thumbs_dir(state: &AppState) -> PathBuf {
+    state.data_dir.join("yt-thumbs")
+}
+
+/// The thumbnail yt-dlp saved for a video (named after the video id), if any.
+fn find_cover(thumbs: &Path, id: &str) -> Option<String> {
+    let prefix = format!("{id}.");
+    for e in std::fs::read_dir(thumbs).ok()?.flatten() {
+        let name = e.file_name().to_string_lossy().to_string();
+        let lower = name.to_lowercase();
+        let is_img = [".webp", ".jpg", ".jpeg", ".png"].iter().any(|x| lower.ends_with(x));
+        if name.starts_with(&prefix) && is_img {
+            return Some(e.path().to_string_lossy().to_string());
+        }
+    }
+    None
 }
 
 /// No console window flashing up when a helper program starts.
@@ -173,7 +197,7 @@ pub async fn yt_search(state: State<'_, AppState>, query: String) -> CmdResult<V
 /// Download the audio of one video. `save = false` puts it in a temporary cache (stream-like
 /// playback); `save = true` puts it in the user's folder and adds it to the library.
 #[tauri::command]
-pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, save: bool, dest: Option<String>) -> CmdResult<String> {
+pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, save: bool, dest: Option<String>) -> CmdResult<YtFile> {
     if !valid_id(&id) {
         return Err("That is not a valid video id.".to_string());
     }
@@ -193,6 +217,7 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
         cache_dir(&state)
     };
     std::fs::create_dir_all(&dir).map_err(err)?;
+    let thumbs = thumbs_dir(&state);
 
     // streamed songs are cached: playing the same one again is instant
     if !save {
@@ -202,13 +227,15 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
                 let name = e.file_name().to_string_lossy().to_string();
                 if name.contains(&tag) && !name.ends_with(".part") && !name.ends_with(".ytdl") {
                     allow_path(&app, &e.path());
-                    return Ok(e.path().to_string_lossy().to_string());
+                    return Ok(YtFile { path: e.path().to_string_lossy().to_string(), cover: find_cover(&thumbs, &id) });
                 }
             }
         }
     }
 
     let dir_for_job = dir.clone();
+    let thumbs_for_job = thumbs.to_string_lossy().to_string();
+    let id_for_cover = id.clone();
     let path = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
         let args = vec![
             "-f".to_string(),
@@ -216,6 +243,11 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
             "--no-playlist".to_string(),
             "--no-warnings".to_string(),
             "--windows-filenames".to_string(),
+            "--write-thumbnail".to_string(),
+            "-P".to_string(),
+            format!("thumbnail:{thumbs_for_job}"),
+            "-o".to_string(),
+            "thumbnail:%(id)s.%(ext)s".to_string(),
             "--encoding".to_string(),
             "utf-8".to_string(),
             "-q".to_string(),
@@ -265,15 +297,16 @@ pub async fn yt_fetch(app: AppHandle, state: State<'_, AppState>, id: String, sa
     if save {
         run_scan(app, state.db_path.clone(), vec![p]).await?;
     }
-    Ok(path)
+    Ok(YtFile { path, cover: find_cover(&thumbs, &id_for_cover) })
 }
 
 /// Delete the temporary files of streamed songs.
 #[tauri::command]
 pub async fn yt_clear_cache(state: State<'_, AppState>) -> CmdResult<()> {
-    let dir = cache_dir(&state);
-    if dir.is_dir() {
-        let _ = std::fs::remove_dir_all(&dir);
+    for dir in [cache_dir(&state), thumbs_dir(&state)] {
+        if dir.is_dir() {
+            let _ = std::fs::remove_dir_all(&dir);
+        }
     }
     Ok(())
 }
