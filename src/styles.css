@@ -482,3 +482,13 @@ kbd { justify-self: start; padding: 3px 9px; border-radius: 8px; border: 1px sol
 .yt-meta { flex: 1; min-width: 0; }
 .yt-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .yt-sub { opacity: 0.6; font-size: 12px; }
+
+/* Batch 5: remove song */
+.confirm { position: fixed; z-index: 71; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100% - 32px)); padding: 20px 22px; border-radius: 24px; animation: helpIn 0.4s var(--ease-out) both; }
+.confirm h2 { margin: 0 0 8px; }
+.confirm-song { margin: 0 0 14px; line-height: 1.4; }
+.confirm-song small { opacity: 0.65; }
+.confirm-actions { display: flex; flex-direction: column; gap: 8px; }
+.confirm-actions .btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.confirm-actions .btn small { opacity: 0.65; font-size: 12px; }
+.btn.danger { background: color-mix(in srgb, #ff5470 28%, transparent); }
