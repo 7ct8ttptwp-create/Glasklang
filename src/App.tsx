@@ -7,6 +7,7 @@ import { Background } from './components/Background';
 import { GlassFilters } from './components/GlassFilters';
 import { PlayerBar } from './components/PlayerBar';
 import { SettingsPanel } from './components/SettingsPanel';
+import { BrowseView } from './components/Browse';
 import { ExtrasRunner, ShortcutsOverlay, SmartView, StatsView } from './components/Extras';
 import { NowPlaying } from './components/NowPlaying';
 import { Sidebar } from './components/Sidebar';
@@ -149,6 +150,9 @@ export default function App() {
       break;
     case 'stats':
       body = <StatsView />;
+      break;
+    case 'browse':
+      body = <BrowseView />;
       break;
     default:
       body = <SongsView />;
